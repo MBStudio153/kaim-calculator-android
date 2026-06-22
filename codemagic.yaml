@@ -4,66 +4,66 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m2     # Free tier: 500 min/month run on this machine only.
     environment:
-      node: 20                     # Pin to the Node version you use locally (e.g. 18, 20, latest).
-      # --- Uncomment when you're ready to build a SIGNED release ---
+      node: 20                     # Match the Node version you use locally (18, 20, latest).
+      # --- Uncomment when ready for a SIGNED release ---
       # android_signing:
-      #   - keystore_reference     # Set this up in Codemagic UI: Teams/App settings > Code signing identities
+      #   - keystore_reference
       # groups:
-      #   - google_play            # Set up in Codemagic UI: holds GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+      #   - google_play
       # vars:
-      #   PACKAGE_NAME: "com.yourcompany.yourapp"   # <-- your real applicationId
+      #   PACKAGE_NAME: "com.yourcompany.yourapp"
       #   GOOGLE_PLAY_TRACK: internal
 
     triggering:
       events:
         - push
       branch_patterns:
-        - pattern: main            # <-- change to your branch (main / master / develop)
+        - pattern: main            # <-- change to your branch
           include: true
           source: true
 
     scripts:
-      - name: Set Android SDK location
-        script: |
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
-
       - name: Install npm dependencies
         script: |
           npm install
 
       - name: Build web assets
         script: |
-          npm run build            # Builds your web app into the dist/www folder.
+          npm run build            # Builds your web app into dist/www.
 
-      - name: Sync Capacitor (THIS FIXES THE MISSING capacitor.settings.gradle)
+      - name: Add & sync Capacitor Android
         script: |
-          npx cap sync android     # Regenerates capacitor.settings.gradle + capacitor.build.gradle and copies web assets.
+          if [ ! -d "android" ]; then npx cap add android; fi
+          npx cap sync android     # Generates capacitor.settings.gradle + copies web assets.
+
+      - name: Set Android SDK location
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
 
       - name: Build Android (debug APK)
         script: |
           cd android
           ./gradlew assembleDebug
 
-      # --- RELEASE BUILD: comment out the debug step above and use this instead ---
+      # --- RELEASE BUILD: comment out the debug step above, use this instead ---
       # - name: Build Android (signed release)
       #   script: |
       #     cd android
-      #     ./gradlew assembleRelease     # APK   -> for direct download / sideload
-      #     # ./gradlew bundleRelease     # AAB   -> required for Google Play upload
+      #     ./gradlew assembleRelease     # APK -> direct download/sideload
+      #     # ./gradlew bundleRelease     # AAB -> required for Google Play
 
     artifacts:
       - android/app/build/outputs/**/*.apk
-      # - android/app/build/outputs/**/*.aab    # uncomment if you build an AAB
 
     publishing:
       email:
         recipients:
-          - mmbernau@gmail.com     # <-- your email; get the APK + logs when the build finishes
+          - mmbernau@gmail.com     # Get the APK + logs when the build finishes.
         notify:
           success: true
           failure: true
 
-      # --- Publish to Google Play (uncomment + finish setup when ready) ---
+      # --- Publish to Google Play (uncomment when ready) ---
       # google_play:
       #   credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
       #   track: $GOOGLE_PLAY_TRACK
