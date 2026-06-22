@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>KAIM — Full Guide</title>
+<style>
+  :root{
+    --ink:#15201c;
+    --paper:#f4efe4;
+    --moss:#2f4a3c;
+    --rust:#a8552c;
+    --gold:#b08d3e;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--paper);font-family:Georgia,'Times New Roman',serif;}
+
+  #topbar{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    display:flex; align-items:center; gap:8px;
+    padding:10px 12px;
+    background:var(--ink);
+    color:#fffdf8;
+    font-family:ui-monospace,'SF Mono',Menlo,Consolas,'Courier New',monospace;
+    font-size:0.78rem;
+  }
+  #topbar button{
+    background:transparent;
+    border:1.5px solid #fffdf8;
+    color:#fffdf8;
+    border-radius:4px;
+    padding:6px 10px;
+    font-family:inherit;
+    font-size:0.78rem;
+    cursor:pointer;
+  }
+  #topbar button:disabled{opacity:0.35;}
+  #chapterSelect{
+    flex:1;
+    background:#fffdf8;
+    color:var(--ink);
+    border:none;
+    border-radius:4px;
+    padding:7px 8px;
+    font-family:inherit;
+    font-size:0.75rem;
+  }
+
+  #readerFrame{
+    position:fixed;
+    top:50px; bottom:0; left:0; right:0;
+    width:100%; height:calc(100% - 50px);
+    border:none;
+    background:var(--paper);
+  }
+
+  /* --- Paywall overlay --- */
+  #paywall{
+    display:none;
+    position:fixed; inset:0; z-index:100;
+    background:rgba(10,15,12,0.92);
+    align-items:center; justify-content:center;
+    padding:24px;
+  }
+  #paywall.active{ display:flex; }
+  .paywall-card{
+    background:#fffdf8;
+    border-radius:10px;
+    max-width:420px;
+    width:100%;
+    padding:0 0 32px;
+    text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,0.4);
+    overflow:hidden;
+  }
+  .paywall-cover{
+    width:100%;
+    display:block;
+    max-height:38vh;
+    object-fit:cover;
+    object-position:top;
+  }
+  .paywall-body{
+    padding:24px 26px 0;
+  }
+  .paywall-card h2{
+    font-family:Georgia,serif;
+    font-size:1.5rem;
+    color:var(--ink);
+    margin:0 0 12px;
+  }
+  .paywall-card p{
+    font-family:ui-monospace,'SF Mono',Menlo,Consolas,'Courier New',monospace;
+    font-size:0.85rem;
+    color:#555;
+    line-height:1.55;
+    margin:0 0 22px;
+  }
+  .unlock-btn{
+    width:100%;
+    background:var(--rust);
+    color:#fffdf8;
+    border:none;
+    border-radius:6px;
+    padding:14px;
+    font-family:ui-monospace,monospace;
+    font-size:0.95rem;
+    font-weight:700;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    cursor:pointer;
+    margin-bottom:12px;
+  }
+  .restore-btn{
+    background:none;
+    border:none;
+    color:var(--moss);
+    font-family:ui-monospace,monospace;
+    font-size:0.78rem;
+    text-decoration:underline;
+    cursor:pointer;
+  }
+  .paywall-close{
+    margin-top:18px;
+    background:none;
+    border:none;
+    color:#999;
+    font-family:ui-monospace,monospace;
+    font-size:0.75rem;
+    cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <button id="backBtn" title="Back to Calculator">&larr;</button>
+  <button id="prevBtn" title="Previous Chapter">‹</button>
+  <select id="chapterSelect"></select>
+  <button id="nextBtn" title="Next Chapter">›</button>
+</div>
+
+<iframe id="readerFrame" src=""></iframe>
+
+<div id="paywall">
+  <div class="paywall-card">
+    <img class="paywall-cover" src="book/images/cover.png" alt="Evaluating Tech Stocks: Knowledge Asset Impairment Model — cover">
+    <div class="paywall-body">
+      <h2>Unlock the Full Guide</h2>
+      <p>
+        You're reading the free preview (Introduction). Unlock the full KAIM
+        methodology — all 8 steps, the Magnificent 7 case studies, the
+        Non-Tech comparison appendix, and references — with a one-time purchase.
+      </p>
+      <button class="unlock-btn" id="unlockBtn">Unlock Full Guide — $4.99</button>
+      <button class="restore-btn" id="restoreBtn">Restore Purchase</button>
+      <br>
+      <button class="paywall-close" id="paywallClose">Not now</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  // Chapter list: filename, display title, whether it's free
+  const CHAPTERS = [
+    { file: 'cover.xhtml', title: 'Cover', free: true },
+    { file: 'section0001.xhtml', title: 'Title Page', free: true },
+    { file: 'section0002.xhtml', title: 'Introduction & Table of Contents', free: true },
+    { file: 'section0003.xhtml', title: 'How to Value a Tech Stock (8 Steps)', free: false },
+    { file: 'section0004.xhtml', title: 'Appendix 1 — Magnificent 7', free: false },
+    { file: 'section0005.xhtml', title: 'Appendix 2 — Non-Tech Large Caps', free: false },
+    { file: 'section0006.xhtml', title: 'References & Data Sources', free: false },
+  ];
+
+  const frame = $('readerFrame');
+  const select = $('chapterSelect');
+  const paywall = $('paywall');
+
+  // ---------- Purchase state ----------
+  // PLACEHOLDER: this just uses localStorage so the unlock flow can be
+  // tested end-to-end. Replace isUnlocked()/unlock() with real billing
+  // (e.g. RevenueCat, or native Google Play Billing via a Capacitor
+  // plugin) before shipping. See README for notes.
+  function isUnlocked(){
+    return localStorage.getItem('kaim_book_unlocked') === 'true';
+  }
+  function setUnlocked(){
+    localStorage.setItem('kaim_book_unlocked', 'true');
+  }
+
+  // ---------- Populate chapter dropdown ----------
+  CHAPTERS.forEach((ch, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = (ch.free ? '' : '🔒 ') + ch.title;
+    select.appendChild(opt);
+  });
+
+  let currentIndex = 0;
+
+  function chapterIsLocked(ch){
+    return !ch.free && !isUnlocked();
+  }
+
+  function loadChapter(index, anchor){
+    if(index < 0 || index >= CHAPTERS.length) return;
+    const ch = CHAPTERS[index];
+    if(chapterIsLocked(ch)){
+      showPaywall();
+      return;
+    }
+    currentIndex = index;
+    select.value = index;
+    let url = 'book/sections/' + ch.file;
+    if(anchor) url += '#' + anchor;
+    frame.src = url;
+    updateNavButtons();
+  }
+
+  function updateNavButtons(){
+    $('prevBtn').disabled = currentIndex <= 0;
+    $('nextBtn').disabled = currentIndex >= CHAPTERS.length - 1;
+  }
+
+  function showPaywall(){ paywall.classList.add('active'); }
+  function hidePaywall(){ paywall.classList.remove('active'); }
+
+  // ---------- Controls ----------
+  $('backBtn').addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
+  $('prevBtn').addEventListener('click', () => loadChapter(currentIndex - 1));
+  $('nextBtn').addEventListener('click', () => loadChapter(currentIndex + 1));
+  select.addEventListener('change', () => loadChapter(parseInt(select.value)));
+
+  $('paywallClose').addEventListener('click', hidePaywall);
+
+  $('unlockBtn').addEventListener('click', () => {
+    // PLACEHOLDER PURCHASE FLOW.
+    // Replace this block with a real call into your billing SDK, e.g.:
+    //   Purchases.purchasePackage(...) // RevenueCat
+    // On successful purchase callback, call setUnlocked() and re-run
+    // the chapter load that triggered the paywall.
+    setUnlocked();
+    hidePaywall();
+    loadChapter(3); // jump into Step 1 now that it's unlocked
+  });
+
+  $('restoreBtn').addEventListener('click', () => {
+    // PLACEHOLDER. Replace with real restore-purchases call from your
+    // billing SDK. For now, just re-checks local unlock state.
+    if(isUnlocked()){
+      hidePaywall();
+      alert('Purchase restored.');
+    } else {
+      alert('No previous purchase found on this device.');
+    }
+  });
+
+  // ---------- Intercept in-content links (TOC, cross-references) ----------
+  // The book's own Table of Contents page contains real <a href="sectionXXXX.xhtml#anchor">
+  // links. We listen for navigation attempts inside the iframe and route
+  // them through our own loadChapter() so the paywall and top bar stay in sync.
+  frame.addEventListener('load', () => {
+    try {
+      const doc = frame.contentDocument;
+      if(!doc) return;
+      doc.querySelectorAll('a[href]').forEach(a => {
+        a.addEventListener('click', (e) => {
+          const href = a.getAttribute('href');
+          if(!href || href.startsWith('http')) return; // let external links behave normally
+          e.preventDefault();
+          const [file, anchor] = href.split('#');
+          const idx = CHAPTERS.findIndex(c => c.file === file);
+          if(idx === -1) return;
+          loadChapter(idx, anchor);
+        });
+      });
+    } catch(err){
+      console.error('Could not attach link listeners inside reader frame:', err);
+    }
+  });
+
+  // ---------- Initial load ----------
+  loadChapter(0);
+})();
+</script>
+
+</body>
+</html>

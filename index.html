@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>KAIM — Knowledge Asset Impairment Model</title>
+<style>
+  :root{
+    --ink:#15201c;
+    --paper:#f4efe4;
+    --paper2:#ece4d2;
+    --ledger-line:#cdbfa0;
+    --moss:#2f4a3c;
+    --moss-dim:#4d6b5a;
+    --rust:#a8552c;
+    --rust-bright:#c2632f;
+    --gold:#b08d3e;
+    --good:#2f6b4f;
+    --warn:#a8552c;
+    --bad:#9c3030;
+    --muted:#6b6354;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:Georgia, 'Times New Roman', serif;
+    font-weight:600;
+    font-size:18px;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      linear-gradient(var(--ledger-line) 1px, transparent 1px);
+    background-size: 100% 2.1em;
+    background-attachment:local;
+  }
+
+  .mono{font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;}
+
+  header.hero{
+    padding:3.2rem 1.5rem 2.2rem;
+    background:
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(21,32,28,0.04) 39px, rgba(21,32,28,0.04) 40px),
+      var(--paper);
+    border-bottom:3px double var(--ink);
+    text-align:left;
+    position:relative;
+  }
+  .eyebrow{
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.72rem;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--rust);
+    margin:0 0 0.6rem;
+  }
+  h1{
+    font-family:Georgia, 'Times New Roman', serif;
+    font-weight:700;
+    font-size:clamp(1.9rem, 6vw, 2.7rem);
+    line-height:1.05;
+    margin:0 0 0.5rem;
+    letter-spacing:-0.01em;
+  }
+  h1 em{
+    font-style:italic;
+    color:var(--moss);
+  }
+  .hero-sub{
+    font-size:1.15rem;
+    font-weight:600;
+    color:var(--muted);
+    max-width:46ch;
+    line-height:1.55;
+    margin:0;
+  }
+  .ticker-rule{
+    display:flex;
+    gap:1.2rem;
+    margin-top:1.6rem;
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.68rem;
+    letter-spacing:0.08em;
+    color:var(--moss-dim);
+    flex-wrap:wrap;
+  }
+  .ticker-rule span::before{content:"·  "; color:var(--gold);}
+  .ticker-rule span:first-child::before{content:"";}
+
+  main{
+    max-width:760px;
+    margin:0 auto;
+    padding:0 1.5rem 5rem;
+  }
+
+  .modeswitch{
+    display:flex;
+    margin:2rem 0 0;
+    border:1.5px solid var(--ink);
+    border-radius:2px;
+    overflow:hidden;
+    width:fit-content;
+  }
+  .modeswitch button{
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.78rem;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    padding:0.65rem 1.1rem;
+    background:var(--paper);
+    border:none;
+    color:var(--ink);
+    cursor:pointer;
+    border-right:1.5px solid var(--ink);
+  }
+  .modeswitch button:last-child{border-right:none;}
+  .modeswitch button.active{
+    background:var(--ink);
+    color:var(--paper);
+  }
+  .mode-note{
+    font-size:0.85rem;
+    color:var(--muted);
+    margin:0.75rem 0 0;
+    font-style:italic;
+  }
+
+  section.panel{
+    margin-top:2.6rem;
+  }
+  .panel-head{
+    display:flex;
+    align-items:baseline;
+    gap:0.7rem;
+    border-bottom:1px solid var(--ink);
+    padding-bottom:0.45rem;
+    margin-bottom:1.3rem;
+  }
+  .panel-num{
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.8rem;
+    color:var(--rust);
+  }
+  .panel-head h2{
+    font-family:Georgia, 'Times New Roman', serif;
+    font-weight:600;
+    font-size:1.25rem;
+    margin:0;
+  }
+
+  .field-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1.1rem 1.4rem;
+  }
+  @media (max-width:520px){ .field-grid{grid-template-columns:1fr;} }
+
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:0.35rem;
+  }
+  .field.span2{grid-column:1 / -1;}
+  label{
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.78rem;
+    font-weight:600;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--moss-dim);
+  }
+  label .hint{
+    text-transform:none;
+    letter-spacing:0;
+    color:var(--muted);
+    font-style:italic;
+    font-weight:500;
+    display:block;
+    font-size:0.8rem;
+    margin-top:0.15rem;
+  }
+  input[type=number], input[type=text], select{
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:1.05rem;
+    font-weight:600;
+    padding:0.55rem 0.6rem;
+    background:#fffdf8;
+    border:1.5px solid var(--ink);
+    border-radius:2px;
+    color:var(--ink);
+  }
+  input:focus, select:focus{
+    outline:2px solid var(--rust);
+    outline-offset:1px;
+  }
+
+  .triggers{
+    display:flex;
+    flex-direction:column;
+    gap:0.9rem;
+  }
+  .trigger-row{
+    display:grid;
+    grid-template-columns:1.4fr 1fr;
+    gap:1rem;
+    align-items:center;
+    padding:0.85rem 1rem;
+    background:#fffdf8;
+    border:1px solid var(--ledger-line);
+    border-radius:3px;
+  }
+  @media (max-width:520px){ .trigger-row{grid-template-columns:1fr;} }
+  .trigger-row strong{font-family:Georgia, 'Times New Roman', serif; font-size:0.95rem;}
+  .trigger-row p{margin:0.2rem 0 0; font-size:0.8rem; color:var(--muted); line-height:1.4;}
+  .pillgroup{display:flex; gap:0.4rem;}
+  .pillgroup button{
+    flex:1;
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.72rem;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    padding:0.5rem 0.4rem;
+    border:1.5px solid var(--ink);
+    background:var(--paper);
+    cursor:pointer;
+    border-radius:2px;
+  }
+  .pillgroup button.sel-no{ }
+  .pillgroup button.active.sel-no{background:var(--good); color:#fff; border-color:var(--good);}
+  .pillgroup button.active.sel-yes{background:var(--bad); color:#fff; border-color:var(--bad);}
+
+  .rd-table{
+    width:100%;
+    border-collapse:collapse;
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.82rem;
+  }
+  .rd-table th{
+    text-align:left;
+    font-size:0.68rem;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    color:var(--moss-dim);
+    border-bottom:1px solid var(--ink);
+    padding:0.4rem 0.5rem;
+  }
+  .rd-table td{
+    padding:0.3rem 0.5rem;
+    border-bottom:1px solid var(--ledger-line);
+  }
+  .rd-table input{
+    width:100%;
+    padding:0.3rem 0.4rem;
+    font-size:0.82rem;
+    border:1px solid var(--ledger-line);
+  }
+  .rd-table .yearcell{color:var(--muted);}
+  .rd-actions{
+    display:flex;
+    gap:0.6rem;
+    margin-top:0.8rem;
+    flex-wrap:wrap;
+  }
+  .btn-ghost{
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.74rem;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    padding:0.5rem 0.85rem;
+    background:transparent;
+    border:1.5px solid var(--moss);
+    color:var(--moss);
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .btn-ghost:hover{background:var(--moss); color:#fff;}
+
+  /* RESULTS */
+  .results{
+    margin-top:3rem;
+    border:3px double var(--ink);
+    padding:1.8rem 1.5rem;
+    background:#fffdf8;
+    position:relative;
+  }
+  .results::before{
+    content:"RESTATED LEDGER";
+    position:absolute;
+    top:-0.7rem;
+    left:1.2rem;
+    background:#fffdf8;
+    padding:0 0.6rem;
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.68rem;
+    letter-spacing:0.14em;
+    color:var(--rust);
+  }
+  .result-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1.5rem 2rem;
+    margin-bottom:1.6rem;
+  }
+  @media (max-width:520px){ .result-grid{grid-template-columns:1fr;} }
+  .result-block{
+    border-left:3px solid var(--moss);
+    padding-left:0.9rem;
+  }
+  .result-block.alt{border-left-color:var(--rust);}
+  .result-label{
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.78rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--muted);
+    margin-bottom:0.3rem;
+  }
+  .result-value{
+    font-family:Georgia, 'Times New Roman', serif;
+    font-weight:700;
+    font-size:2.1rem;
+    line-height:1.1;
+  }
+  .result-sub{
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.85rem;
+    font-weight:600;
+    color:var(--muted);
+    margin-top:0.25rem;
+  }
+
+  .multiple-banner{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:1.1rem 1.3rem;
+    background:var(--ink);
+    color:var(--paper);
+    border-radius:3px;
+    margin-bottom:1.6rem;
+    flex-wrap:wrap;
+    gap:0.6rem;
+  }
+  .multiple-banner .mb-label{
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.78rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--paper2);
+  }
+  .multiple-banner .mb-value{
+    font-family:Georgia, 'Times New Roman', serif;
+    font-size:2.5rem;
+    font-weight:700;
+  }
+  .multiple-banner .mb-old{
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:1rem;
+    font-weight:600;
+    color:var(--paper2);
+    text-decoration:line-through;
+    opacity:0.7;
+  }
+
+  .read-out{
+    font-size:1.05rem;
+    font-weight:500;
+    line-height:1.6;
+    color:var(--ink);
+    border-top:1px solid var(--ledger-line);
+    padding-top:1rem;
+  }
+  .read-out strong{color:var(--moss);}
+  .tag{
+    display:inline-block;
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.78rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    padding:0.15rem 0.5rem;
+    border-radius:2px;
+    margin-right:0.3rem;
+  }
+  .tag.good{background:rgba(47,107,79,0.15); color:var(--good);}
+  .tag.warn{background:rgba(168,85,44,0.15); color:var(--warn);}
+  .tag.bad{background:rgba(156,48,48,0.15); color:var(--bad);}
+
+  .breakdown{
+    margin-top:1.4rem;
+    border-top:1px dashed var(--ledger-line);
+    padding-top:1rem;
+  }
+  .breakdown-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:0.9rem;
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.92rem;
+    font-weight:600;
+    padding:0.4rem 0;
+    border-bottom:1px dotted var(--ledger-line);
+    line-height:1.4;
+  }
+  .breakdown-row span:first-child{
+    flex:1 1 auto;
+    min-width:0;
+  }
+  .breakdown-row span:last-child{
+    flex:0 0 auto;
+    white-space:nowrap;
+    text-align:right;
+  }
+  .breakdown-row.total{
+    border-bottom:none;
+    border-top:1px solid var(--ink);
+    margin-top:0.3rem;
+    padding-top:0.6rem;
+    font-weight:700;
+    font-size:1rem;
+  }
+  .breakdown-row.pb{
+    border-top:2px double var(--ink);
+    margin-top:0.5rem;
+    padding-top:0.7rem;
+    font-weight:700;
+    font-size:1.05rem;
+    color:var(--rust);
+  }
+  .breakdown-row .neg{color:var(--bad);}
+
+  footer{
+    max-width:760px;
+    margin:0 auto;
+    padding:2.5rem 1.5rem 4rem;
+    font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+    font-size:0.72rem;
+    color:var(--muted);
+    line-height:1.6;
+    border-top:1px solid var(--ledger-line);
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <p class="eyebrow">An Interactive Companion to the KAIM Methodology</p>
+  <h1>The Knowledge<br><em>Capital</em> Ledger</h1>
+  <p class="hero-sub" style="max-width:58ch; font-weight:500;"><strong>KAIM stands for Knowledge Asset Impairment Model.</strong> It finds the R&amp;D value hidden off the balance sheet by treating the R&amp;D department as the factory floor — its output measured in the cash returns it produces, not in the year it was expensed. The results of that re-accounting are reflected in the model's <strong>KAIM Book Value</strong> below. The model can be applied to any publicly traded company.</p>
+  <p class="hero-sub">Enter your own company's metrics to see how its balance sheet reads once the knowledge factory is put back on the books. This app runs entirely in your browser — no data is sent anywhere, and it works fully offline once loaded.</p>
+  <div class="ticker-rule">
+    <span>KCS = 20YR R&amp;D CAPITALIZED</span>
+    <span>3 IMPAIRMENT TRIGGERS</span>
+    <span>+ FORWARD CONTRACT ASSETS</span>
+    <span>RESIDUAL P/B</span>
+  </div>
+</header>
+
+<main>
+
+  <div class="modeswitch">
+    <button id="btnSimple" class="active">Simplified</button>
+    <button id="btnFull">Full Model</button>
+  </div>
+  <p class="mode-note" id="modeNote">Quick mode: enter a known KCS total directly. Switch to Full Model to build the R&amp;D ledger year by year, exactly as in the book.</p>
+
+  <!-- COMPANY BASICS -->
+  <section class="panel">
+    <div class="panel-head"><span class="panel-num">01</span><h2>Company &amp; Market Data</h2></div>
+    <div class="field-grid">
+      <div class="field">
+        <label>Company / Ticker</label>
+        <input type="text" id="companyName" placeholder="e.g. Acme Robotics (ACME)">
+      </div>
+      <div class="field">
+        <label>Reporting Period Type</label>
+        <select id="periodType">
+          <option value="Annual" selected>Annual (Fiscal Year)</option>
+          <option value="Quarterly">Quarterly</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Period Label<span class="hint">e.g. "FY2025" or "Q3 FY2026" — shown on results</span></label>
+        <input type="text" id="periodLabel" placeholder="e.g. FY2025">
+      </div>
+      <div class="field">
+        <label>GAAP Shareholders' Equity ($M)<span class="hint" id="gaapHint">Total stockholders' equity, latest 10-K</span></label>
+        <input type="text" inputmode="decimal" id="gaapEquity" placeholder="e.g. 79300">
+      </div>
+      <div class="field">
+        <label>Market Capitalization ($M)<span class="hint">Share price × shares outstanding, as of period end</span></label>
+        <input type="text" inputmode="decimal" id="marketCap" placeholder="e.g. 3390000">
+      </div>
+      <div class="field" id="haircutWrap" style="display:none;">
+        <label>R&amp;D Recognition Haircut (%)<span class="hint">e.g. 50% for blended R&amp;D/infra categories like Amazon's</span></label>
+        <input type="text" inputmode="decimal" id="haircut" value="100" min="0" max="100">
+      </div>
+    </div>
+  </section>
+
+  <!-- SIMPLIFIED INPUTS -->
+  <section class="panel" id="simplePanel">
+    <div class="panel-head"><span class="panel-num">02</span><h2>Knowledge Capital Stock (Quick Entry)</h2></div>
+    <div class="field-grid">
+      <div class="field">
+        <label>Knowledge Capital Stock ($M)<span class="hint" id="simpleKcsHint">Sum of last 20 fiscal years' R&amp;D spend, minus any impairments</span></label>
+        <input type="text" inputmode="decimal" id="kcsNominalQuick" placeholder="e.g. 57000">
+      </div>
+    </div>
+  </section>
+
+  <!-- FULL MODEL: R&D LEDGER -->
+  <section class="panel" id="fullPanel" style="display:none;">
+    <div class="panel-head"><span class="panel-num">02</span><h2>R&amp;D Capital Stock Ledger</h2></div>
+    <div class="field-grid" style="margin-bottom:1.2rem;">
+      <div class="field">
+        <label id="numYearsLabel">Number of Years in Window<span class="hint" id="numYearsHint">20yr default; use fewer for younger companies</span></label>
+        <input type="text" inputmode="decimal" id="numYears" value="20" min="1" max="40">
+      </div>
+    </div>
+    <table class="rd-table" id="rdTable">
+      <thead>
+        <tr><th id="periodColHeader">Fiscal Year</th><th>R&amp;D Spend ($M)</th></tr>
+      </thead>
+      <tbody id="rdTableBody"></tbody>
+    </table>
+    <div class="rd-actions">
+      <button class="btn-ghost" id="rebuildYears">Rebuild Rows from Period Count</button>
+    </div>
+  </section>
+
+  <!-- TRIGGERS -->
+  <section class="panel" id="triggerPanel">
+    <div class="panel-head"><span class="panel-num">03</span><h2>Impairment Trigger Tests</h2></div>
+    <div class="triggers">
+      <div class="trigger-row">
+        <div>
+          <strong>Trigger 1 — Innovation Stagnation</strong>
+          <p>R&amp;D-to-revenue ratio has declined materially for 3+ consecutive years with no major product cycle.</p>
+        </div>
+        <div class="pillgroup" data-trigger="t1">
+          <button class="sel-no active" data-val="no">No</button>
+          <button class="sel-yes" data-val="yes">Yes</button>
+        </div>
+      </div>
+      <div class="trigger-row">
+        <div>
+          <strong>Trigger 2 — Platform Abandonment</strong>
+          <p>A core platform or product line the KCS was built on has been discontinued, sunset, or replaced by a competitor's standard.</p>
+        </div>
+        <div class="pillgroup" data-trigger="t2">
+          <button class="sel-no active" data-val="no">No</button>
+          <button class="sel-yes" data-val="yes">Yes</button>
+        </div>
+      </div>
+      <div class="trigger-row">
+        <div>
+          <strong>Trigger 3 — Competitive Displacement</strong>
+          <p>Sustained revenue or unit decline (e.g. YoY contraction) signaling the knowledge base has lost market relevance.</p>
+        </div>
+        <div class="pillgroup" data-trigger="t3">
+          <button class="sel-no active" data-val="no">No</button>
+          <button class="sel-yes" data-val="yes">Yes</button>
+        </div>
+      </div>
+      <div class="field" style="margin-top:0.4rem;">
+        <label>Impairment Write-Down if Any Trigger Fires (%)<span class="hint">Applied to KCS only when a trigger above is set to Yes</span></label>
+        <input type="text" inputmode="decimal" id="impairmentPct" value="25" min="0" max="100">
+      </div>
+    </div>
+  </section>
+
+  <!-- FORWARD ASSETS -->
+  <section class="panel">
+    <div class="panel-head"><span class="panel-num">04</span><h2>Forward Contract Assets</h2></div>
+    <div class="field-grid">
+      <div class="field">
+        <label>Hardware / Chip Purchase Commitments ($M)<span class="hint">From 10-K footnotes</span></label>
+        <input type="text" inputmode="decimal" id="hwCommit" placeholder="e.g. 30800">
+      </div>
+      <div class="field">
+        <label>Hardware Recognition Rate (%)<span class="hint">Default 80% per KAIM model</span></label>
+        <input type="text" inputmode="decimal" id="hwRate" value="80">
+      </div>
+      <div class="field">
+        <label>Hardware Cost Ratio (%)<span class="hint">Default 25% per KAIM model</span></label>
+        <input type="text" inputmode="decimal" id="hwCost" value="25">
+      </div>
+      <div class="field">
+        <label>Cloud / Software Service Agreements ($M)</label>
+        <input type="text" inputmode="decimal" id="cloudCommit" placeholder="e.g. 10900">
+      </div>
+      <div class="field">
+        <label>Cloud Recognition Rate (%)<span class="hint">Default 100% — full value</span></label>
+        <input type="text" inputmode="decimal" id="cloudRate" value="100">
+      </div>
+    </div>
+  </section>
+
+  <!-- CALCULATE -->
+  <button id="calculateBtn" style="width:100%; font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace; font-size:1rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; padding:1rem; background:var(--moss); color:#fffdf8; border:1.5px solid var(--moss); border-radius:2px; cursor:pointer; margin-top:1.5rem;">Calculate KAIM Results ↓</button>
+
+  <!-- RESULTS -->
+  <div class="results" id="resultsBox">
+    <div id="resultPeriod" class="mono" style="font-size:0.85rem; font-weight:700; color:var(--moss-dim); margin-bottom:1rem; letter-spacing:0.03em;">Enter company details above</div>
+    <div class="multiple-banner">
+      <div>
+        <div class="mb-label">KAIM Price-to-Book</div>
+        <div class="mb-value" id="kaimPB">—</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="mb-label">GAAP P/B</div>
+        <div class="mb-old" id="gaapPB">—</div>
+      </div>
+    </div>
+
+    <div class="result-grid">
+      <div class="result-block">
+        <div class="result-label">KAIM Book Value</div>
+        <div class="result-value" id="kaimBookValue">$0M</div>
+        <div class="result-sub" id="kaimBookSub">GAAP equity + KCS + forward assets</div>
+      </div>
+      <div class="result-block alt">
+        <div class="result-label">Knowledge Capital Stock Added</div>
+        <div class="result-value" id="kcsAdded">$0M</div>
+        <div class="result-sub" id="kcsAddedSub">after triggers &amp; haircuts</div>
+      </div>
+    </div>
+
+    <div class="breakdown" id="breakdown"></div>
+
+    <div class="read-out" id="readout">
+      Enter your company's figures above to generate the restated ledger.
+    </div>
+  </div>
+
+  <div style="margin-top:1.6rem; text-align:center;">
+    <a href="book.html" style="display:inline-block; font-family:ui-monospace,'SF Mono',Menlo,Consolas,'Courier New',monospace; font-size:0.85rem; font-weight:700; letter-spacing:0.03em; text-transform:uppercase; padding:0.85rem 1.4rem; background:var(--ink); color:#fffdf8; border-radius:4px; text-decoration:none;">📖 Read the Full KAIM Guide</a>
+  </div>
+
+</main>
+
+<footer>
+  KAIM — Knowledge Asset Impairment Model. This calculator is an independent, unofficial implementation of the KAIM methodology described in "Evaluating Tech Stocks Using the Knowledge Asset Impairment Model" by Matt Bernau. It is provided for educational and illustrative purposes only and does not constitute financial, investment, legal, or accounting advice. KAIM is a research lens, not an audited accounting standard or a validated forecasting tool. Consult a licensed financial advisor and audited financial statements before making any investment decision.
+  <br><br>
+  Note on CPI adjustment: the source e-book applies a CPI-U inflation adjustment to restate each year's R&amp;D spend into constant dollars before summing the Knowledge Capital Stock. That step has been omitted from this app for simplicity; the Knowledge Capital Stock here reflects nominal (as-reported) R&amp;D spend only. The full CPI-adjusted methodology remains documented in the e-book.
+</footer>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  // Robust numeric parser: strips commas, $ signs, spaces — so "157,293" or "$5,100,000" both work.
+  const num = id => {
+    const raw = ($(id) && $(id).value) || '';
+    const cleaned = raw.replace(/[^0-9.\-]/g, '');
+    const n = parseFloat(cleaned);
+    return isFinite(n) ? n : 0;
+  };
+  let mode = 'simple';
+
+  // ---------- MODE SWITCH ----------
+  const btnSimple = $('btnSimple'), btnFull = $('btnFull');
+  const simplePanel = $('simplePanel'), fullPanel = $('fullPanel');
+  const modeNote = $('modeNote'), haircutWrap = $('haircutWrap');
+
+  function setMode(m){
+    mode = m;
+    btnSimple.classList.toggle('active', m==='simple');
+    btnFull.classList.toggle('active', m==='full');
+    simplePanel.style.display = m==='simple' ? '' : 'none';
+    fullPanel.style.display = m==='full' ? '' : 'none';
+    haircutWrap.style.display = m==='full' ? '' : 'none';
+    modeNote.textContent = m==='simple'
+      ? "Quick mode: enter a known KCS total directly. Switch to Full Model to build the R&D ledger year by year, exactly as in the book."
+      : "Full mode: enter R&D spend for each fiscal year in the window. The calculator sums them into your Knowledge Capital Stock.";
+    compute();
+  }
+  btnSimple.onclick = () => setMode('simple');
+  btnFull.onclick = () => setMode('full');
+
+  // ---------- PERIOD TYPE ----------
+  const periodType = $('periodType'), periodLabel = $('periodLabel');
+  const simpleKcsHint = $('simpleKcsHint'), numYearsLabel = $('numYearsLabel'), numYearsHint = $('numYearsHint');
+  const periodColHeader = $('periodColHeader'), numYearsInput = $('numYears');
+
+  function updatePeriodUI(){
+    const isQuarterly = periodType.value === 'Quarterly';
+    if(isQuarterly){
+      simpleKcsHint.textContent = 'Sum of last 20 quarters\' R&D spend, minus any impairments';
+      numYearsLabel.childNodes[0].textContent = 'Number of Quarters in Window ';
+      numYearsHint.textContent = '20-quarter (5yr) default; use fewer for younger companies';
+      periodColHeader.textContent = 'Fiscal Quarter';
+      if(periodLabel.value.trim() === '' || /^FY\d{4}$/.test(periodLabel.value.trim())){
+        periodLabel.placeholder = 'e.g. Q3 FY2026';
+      }
+    } else {
+      simpleKcsHint.textContent = 'Sum of last 20 fiscal years\' R&D spend, minus any impairments';
+      numYearsLabel.childNodes[0].textContent = 'Number of Years in Window ';
+      numYearsHint.textContent = '20yr default; use fewer for younger companies';
+      periodColHeader.textContent = 'Fiscal Year';
+      periodLabel.placeholder = 'e.g. FY2025';
+    }
+    buildRows();
+    compute();
+  }
+  periodType.addEventListener('change', updatePeriodUI);
+  periodLabel.addEventListener('input', compute);
+
+  // ---------- FULL MODEL: R&D TABLE ----------
+  const rdBody = $('rdTableBody');
+  function buildRows(){
+    const isQuarterly = periodType.value === 'Quarterly';
+    const maxN = isQuarterly ? 40 : 30;
+    const n = Math.max(1, Math.min(maxN, parseInt(numYearsInput.value) || (isQuarterly ? 20 : 20)));
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentQuarter = Math.floor(now.getMonth()/3) + 1;
+    rdBody.innerHTML = '';
+    if(isQuarterly){
+      // step back n quarters from current quarter
+      let q = currentQuarter, y = currentYear;
+      const labels = [];
+      for(let i=0;i<n;i++){
+        labels.unshift(`Q${q} FY${y}`);
+        q--; if(q < 1){ q = 4; y--; }
+      }
+      labels.forEach(lbl=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="yearcell">${lbl}</td>
+          <td><input type="text" inputmode="decimal" class="rd-nominal" placeholder="0"></td>
+        `;
+        rdBody.appendChild(tr);
+      });
+    } else {
+      for(let i=0;i<n;i++){
+        const fy = currentYear - n + 1 + i;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="yearcell">FY${fy}</td>
+          <td><input type="text" inputmode="decimal" class="rd-nominal" placeholder="0"></td>
+        `;
+        rdBody.appendChild(tr);
+      }
+    }
+    attachRowListeners();
+  }
+  function attachRowListeners(){
+    rdBody.querySelectorAll('.rd-nominal').forEach(inp=>{
+      inp.addEventListener('input', compute);
+    });
+  }
+  $('rebuildYears').onclick = buildRows;
+  buildRows();
+
+  function fullKCS(){
+    let nominalSum = 0;
+    rdBody.querySelectorAll('tr').forEach(tr=>{
+      const nomInput = tr.querySelector('.rd-nominal');
+      nominalSum += parseFloat((nomInput.value || '').replace(/[^0-9.\-]/g, '')) || 0;
+    });
+    return {nominal: nominalSum};
+  }
+
+  // ---------- TRIGGERS ----------
+  let triggerState = {t1:false, t2:false, t3:false};
+  document.querySelectorAll('.pillgroup').forEach(group=>{
+    const key = group.dataset.trigger;
+    group.querySelectorAll('button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        group.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        triggerState[key] = btn.dataset.val === 'yes';
+        compute();
+      });
+    });
+  });
+  $('impairmentPct').addEventListener('input', compute);
+
+  // ---------- GENERIC LISTENERS ----------
+  ['companyName','gaapEquity','marketCap','haircut','kcsNominalQuick',
+   'hwCommit','hwRate','hwCost','cloudCommit','cloudRate'].forEach(id=>{
+    $(id).addEventListener('input', compute);
+  });
+
+  // ---------- FORMATTERS ----------
+  function fmtM(n){
+    if(!isFinite(n)) return '$0M';
+    const abs = Math.abs(n);
+    if(abs >= 1000000) return (n<0?'-':'') + '$' + (abs/1000000).toFixed(2) + 'T';
+    if(abs >= 1000) return (n<0?'-':'') + '$' + (abs/1000).toFixed(1) + 'B';
+    return (n<0?'-':'') + '$' + Math.round(abs).toLocaleString() + 'M';
+  }
+  function fmtX(n){
+    if(!isFinite(n) || n<=0) return '—';
+    return n.toFixed(1) + 'x';
+  }
+
+  // ---------- MAIN COMPUTE ----------
+  function compute(){
+    const gaapEquity = num('gaapEquity');
+    const marketCap = num('marketCap');
+    const name = $('companyName').value.trim() || 'Untitled Company';
+    const pType = $('periodType').value;
+    const pLabel = $('periodLabel').value.trim() || (pType === 'Quarterly' ? 'Quarter not specified' : 'Fiscal year not specified');
+    $('resultPeriod').textContent = `${name} — ${pType}, ${pLabel}`;
+
+    let kcs = 0;
+    if(mode === 'simple'){
+      kcs = num('kcsNominalQuick');
+    } else {
+      const r = fullKCS();
+      kcs = r.nominal;
+      const haircut = ($('haircut').value.trim() === '' ? 100 : num('haircut')) / 100;
+      kcs *= haircut;
+    }
+
+    // apply trigger impairment
+    const anyTrigger = triggerState.t1 || triggerState.t2 || triggerState.t3;
+    const impPct = num('impairmentPct') / 100;
+    let kcsUsed = kcs;
+    let impairmentAmt = 0;
+    if(anyTrigger){
+      impairmentAmt = kcsUsed * impPct;
+      kcsUsed = kcsUsed - impairmentAmt;
+    }
+
+    // forward assets
+    const hwCommit = num('hwCommit');
+    const hwRate = num('hwRate') / 100;
+    const hwCost = num('hwCost') / 100;
+    const cloudCommit = num('cloudCommit');
+    const cloudRate = num('cloudRate') / 100;
+
+    const hwAsset = hwCommit * hwRate * hwCost;
+    const cloudAsset = cloudCommit * cloudRate;
+    const forwardTotal = hwAsset + cloudAsset;
+
+    const kaimBookValue = gaapEquity + kcsUsed + forwardTotal;
+    const kaimPB = marketCap > 0 && kaimBookValue > 0 ? marketCap / kaimBookValue : null;
+    const gaapPB = marketCap > 0 && gaapEquity > 0 ? marketCap / gaapEquity : null;
+
+    // ---- render ----
+    $('kaimPB').textContent = kaimPB ? fmtX(kaimPB) : '—';
+    $('gaapPB').textContent = gaapPB ? fmtX(gaapPB) : '—';
+    $('kaimBookValue').textContent = fmtM(kaimBookValue);
+    $('kcsAdded').textContent = fmtM(kcsUsed);
+    $('kcsAddedSub').textContent = anyTrigger
+      ? `after ${Math.round(impPct*100)}% impairment write-down`
+      : 'no impairment triggers active';
+
+    const breakdown = $('breakdown');
+    breakdown.innerHTML = `
+      <div class="breakdown-row"><span>GAAP Shareholders' Equity</span><span>${fmtM(gaapEquity)}</span></div>
+      <div class="breakdown-row"><span>+ Knowledge Capital Stock${anyTrigger ? ' (post-impairment)' : ''}</span><span>${fmtM(kcsUsed)}</span></div>
+      ${anyTrigger ? `<div class="breakdown-row"><span class="neg">&nbsp;&nbsp;− Impairment write-down</span><span class="neg">−${fmtM(impairmentAmt)}</span></div>` : ''}
+      <div class="breakdown-row"><span>+ Hardware Commitments</span><span>${fmtM(hwAsset)}</span></div>
+      <div class="breakdown-row"><span>+ Cloud / Software Contract Value</span><span>${fmtM(cloudAsset)}</span></div>
+      <div class="breakdown-row total"><span>= KAIM Book Value</span><span>${fmtM(kaimBookValue)}</span></div>
+      <div class="breakdown-row pb"><span>KAIM Price-to-Book (Market Cap ÷ KAIM Book Value)</span><span>${kaimPB ? fmtX(kaimPB) : '—'}</span></div>
+      <div class="breakdown-row"><span>GAAP Price-to-Book (Market Cap ÷ GAAP Equity)</span><span>${gaapPB ? fmtX(gaapPB) : '—'}</span></div>
+    `;
+
+    const readout = $('readout');
+    if(!marketCap || (!gaapEquity && !kcsUsed)){
+      readout.innerHTML = 'Enter market cap, GAAP equity, and a knowledge capital figure above to generate the restated ledger.';
+    } else {
+      let tags = '';
+      if(anyTrigger){
+        tags += '<span class="tag warn">Trigger Active</span>';
+      } else {
+        tags += '<span class="tag good">No Triggers Fired</span>';
+      }
+      let interp = '';
+      if(kaimPB){
+        if(kaimPB < 3) interp = 'a residual multiple under 3x — KAIM suggests the market may be pricing in little beyond the already-recognized knowledge base.';
+        else if(kaimPB < 8) interp = 'a residual multiple in the 3–8x range — consistent with the market pricing in moderate continued growth on top of the restated knowledge base.';
+        else if(kaimPB < 20) interp = 'a residual multiple in the 8–20x range — the market is pricing in substantial forward growth expectations even after the knowledge factory is recognized.';
+        else interp = 'a residual multiple above 20x — even after capitalizing two decades of R&D and forward commitments, the market is pricing in extraordinary forward expectations.';
+      }
+      readout.innerHTML = `${tags}<br><br>Under KAIM, <strong>${name}</strong>'s book value expands from ${fmtM(gaapEquity)} (GAAP) to <strong>${fmtM(kaimBookValue)}</strong> once the knowledge factory and forward contract assets are recognized.
+      ${gaapPB ? `GAAP P/B of ${fmtX(gaapPB)} compresses to a KAIM P/B of <strong>${fmtX(kaimPB)}</strong>` : `KAIM P/B is ${fmtX(kaimPB)}`} — ${interp}`;
+    }
+  }
+
+  $('calculateBtn').addEventListener('click', () => {
+    compute();
+    document.getElementById('resultsBox').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  compute();
+
+})();
+</script>
+
+</body>
+</html>
