@@ -1,10 +1,9 @@
 workflows:
   android-workflow:
     name: Capacitor Android Build
-    instance_type: mac_mini
     max_build_duration: 120
     environment:
-      java: 11
+      java: 17
       ndk: 23.1.7779620
     triggering:
       events:
@@ -15,6 +14,7 @@ workflows:
       - name: Build Android app
         script: |
           npm run build
+          npx cap add android || true
           npx cap sync android
           cd android && ./gradlew assembleRelease
     artifacts:
