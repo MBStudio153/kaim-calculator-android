@@ -29,7 +29,12 @@ workflows:
 
       - name: Build web assets
         script: |
-          npm run build            # Builds your web app into dist/www.
+          # Static site: assemble the web files into a www/ folder for Capacitor.
+          mkdir -p www
+          cp index.html book.html stylesheet.css www/
+          cp section*.xhtml www/
+          echo "Contents of www/:"
+          ls -la www
 
       - name: Add & sync Capacitor Android
         script: |
