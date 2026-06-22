@@ -1,22 +1,70 @@
 workflows:
   android-workflow:
-    name: Capacitor Android Build
-    max_build_duration: 120
+    name: Capacitor Android Workflow
+    max_build_duration: 60
+    instance_type: linux_x2        # Cheaper/faster for Android-only. Use mac_mini_m2 if you also build iOS.
     environment:
-      java: 17
-      ndk: 23.1.7779620
+      node: 20                     # Pin to the Node version you use locally (e.g. 18, 20, latest).
+      # --- Uncomment when you're ready to build a SIGNED release ---
+      # android_signing:
+      #   - keystore_reference     # Set this up in Codemagic UI: Teams/App settings > Code signing identities
+      # groups:
+      #   - google_play            # Set up in Codemagic UI: holds GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+      # vars:
+      #   PACKAGE_NAME: "com.yourcompany.yourapp"   # <-- your real applicationId
+      #   GOOGLE_PLAY_TRACK: internal
+
     triggering:
       events:
         - push
+      branch_patterns:
+        - pattern: main            # <-- change to your branch (main / master / develop)
+          include: true
+          source: true
+
     scripts:
-      - name: Install dependencies
-        script: npm install
-      - name: Build Android app
+      - name: Set Android SDK location
         script: |
-          npm run build
-          npx cap add android || true
-          npx cap sync android
-          cd android && ./gradlew assembleRelease
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+
+      - name: Install npm dependencies
+        script: |
+          npm install
+
+      - name: Build web assets
+        script: |
+          npm run build            # Builds your web app into the dist/www folder.
+
+      - name: Sync Capacitor (THIS FIXES THE MISSING capacitor.settings.gradle)
+        script: |
+          npx cap sync android     # Regenerates capacitor.settings.gradle + capacitor.build.gradle and copies web assets.
+
+      - name: Build Android (debug APK)
+        script: |
+          cd android
+          ./gradlew assembleDebug
+
+      # --- RELEASE BUILD: comment out the debug step above and use this instead ---
+      # - name: Build Android (signed release)
+      #   script: |
+      #     cd android
+      #     ./gradlew assembleRelease     # APK   -> for direct download / sideload
+      #     # ./gradlew bundleRelease     # AAB   -> required for Google Play upload
+
     artifacts:
       - android/app/build/outputs/**/*.apk
-      - android/app/build/outputs/**/*.aab
+      # - android/app/build/outputs/**/*.aab    # uncomment if you build an AAB
+
+    publishing:
+      email:
+        recipients:
+          - you@example.com        # <-- your email; get the APK + logs when the build finishes
+        notify:
+          success: true
+          failure: true
+
+      # --- Publish to Google Play (uncomment + finish setup when ready) ---
+      # google_play:
+      #   credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+      #   track: $GOOGLE_PLAY_TRACK
+      #   submit_as_draft: true
