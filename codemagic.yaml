@@ -2,7 +2,7 @@ workflows:
   android-workflow:
     name: Capacitor Android Workflow
     max_build_duration: 60
-    instance_type: linux_x2        # Cheaper/faster for Android-only. Use mac_mini_m2 if you also build iOS.
+    instance_type: mac_mini_m2     # Free tier: 500 min/month run on this machine only.
     environment:
       node: 20                     # Pin to the Node version you use locally (e.g. 18, 20, latest).
       # --- Uncomment when you're ready to build a SIGNED release ---
@@ -58,7 +58,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - you@example.com        # <-- your email; get the APK + logs when the build finishes
+          - mmbernau@gmail.com     # <-- your email; get the APK + logs when the build finishes
         notify:
           success: true
           failure: true
