@@ -4,15 +4,15 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m2     # Free tier: 500 min/month run on this machine only.
     environment:
-      node: 20                     # Match the Node version you use locally (18, 20, latest).
+          node: 20                     # Match the Node version you use locally (18, 20, latest).
       # --- Uncomment when ready for a SIGNED release ---
-      android_signing:
-      - Kaim_keystore
-      groups:
-      - google_play
-      vars:
-      PACKAGE_NAME: "com.mbstudio153.kaimcalculator"
-      GOOGLE_PLAY_TRACK: internal
+          android_signing:
+            - Kaim_keystore
+          groups:
+            - google_play
+         vars:
+             PACKAGE_NAME: "com.mbstudio153.kaimcalculator"
+             GOOGLE_PLAY_TRACK: internal
 
     triggering:
       events:
