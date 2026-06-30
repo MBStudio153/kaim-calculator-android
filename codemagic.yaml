@@ -6,13 +6,13 @@ workflows:
     environment:
       node: 20                     # Match the Node version you use locally (18, 20, latest).
       # --- Uncomment when ready for a SIGNED release ---
-      # android_signing:
-      #   - keystore_reference
-      # groups:
-      #   - google_play
-      # vars:
-      #   PACKAGE_NAME: "com.yourcompany.yourapp"
-      #   GOOGLE_PLAY_TRACK: internal
+       android_signing:
+        - Kaim_keystore
+      groups:
+       - google_play
+      vars:
+       PACKAGE_NAME: "com.mbstudio153.kaimcalculator"
+       GOOGLE_PLAY_TRACK: internal
 
     triggering:
       events:
