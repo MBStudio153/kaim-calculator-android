@@ -2,23 +2,22 @@ workflows:
   android-workflow:
     name: Capacitor Android Workflow
     max_build_duration: 60
-    instance_type: mac_mini_m2     # Free tier: 500 min/month run on this machine only.
+    instance_type: mac_mini_m2
     environment:
-          node: 20                     # Match the Node version you use locally (18, 20, latest).
-      # --- Uncomment when ready for a SIGNED release ---
-          android_signing:
-            - Kaim_keystore
-          groups:
-            - google_play
-         vars:
-             PACKAGE_NAME: "com.mbstudio153.kaimcalculator"
-             GOOGLE_PLAY_TRACK: internal
+      node: 20
+      android_signing:
+        - Kaim_keystore
+      groups:
+        - google_play
+      vars:
+        PACKAGE_NAME: "com.mbstudio153.kaimcalculator"
+        GOOGLE_PLAY_TRACK: internal
 
     triggering:
       events:
         - push
       branch_patterns:
-        - pattern: main            # <-- change to your branch
+        - pattern: main
           include: true
           source: true
 
@@ -29,7 +28,6 @@ workflows:
 
       - name: Build web assets
         script: |
-          # Static site: assemble the web files into a www/ folder for Capacitor.
           mkdir -p www
           cp index.html book.html stylesheet.css www/
           cp section*.xhtml www/
@@ -39,23 +37,16 @@ workflows:
       - name: Add & sync Capacitor Android
         script: |
           if [ ! -d "android" ]; then npx cap add android; fi
-          npx cap sync android     # Generates capacitor.settings.gradle + copies web assets.
+          npx cap sync android
 
       - name: Set Android SDK location
         script: |
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
 
       - name: Build Android (debug APK)
         script: |
           cd android
           ./gradlew assembleDebug
-
-      # --- RELEASE BUILD: comment out the debug step above, use this instead ---
-      # - name: Build Android (signed release)
-      #   script: |
-      #     cd android
-      #     ./gradlew assembleRelease     # APK -> direct download/sideload
-      #     # ./gradlew bundleRelease     # AAB -> required for Google Play
 
     artifacts:
       - android/app/build/outputs/**/*.apk
@@ -63,12 +54,10 @@ workflows:
     publishing:
       email:
         recipients:
-          - mmbernau@gmail.com     # Get the APK + logs when the build finishes.
+          - mmbernau@gmail.com
         notify:
           success: true
           failure: true
-
-      # --- Publish to Google Play (uncomment when ready) ---
       # google_play:
       #   credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
       #   track: $GOOGLE_PLAY_TRACK
