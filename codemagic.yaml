@@ -43,13 +43,13 @@ workflows:
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
 
-      - name: Build Android (debug APK)
+      - name: Build Android (release)
         script: |
           cd android
-          ./gradlew assembleDebug
+          ./gradlew bundleRelease
 
     artifacts:
-      - android/app/build/outputs/**/*.apk
+      - android/app/build/outputs/**/*.aab
 
     publishing:
       email:
